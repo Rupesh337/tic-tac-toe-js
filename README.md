@@ -1,7 +1,7 @@
 Tic Tac Toe
 ==============
 
-![](preview.png)
+![](./preview.png)
 
 A simple JavaScript "Tic Tac Toe" game with CSS themes and animations.
 
