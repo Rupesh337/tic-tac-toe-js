@@ -1,6 +1,6 @@
-tic-tac-toe-js
+Tic Tac Toe
 ==============
 
-A simple Tic Tac Toe JavaScript game with themes
+A simple JavaScript "Tic Tac Toe" game with CSS themes.
 
 Demo: http://mediaupstream.com/sandbox/tic-tac-toe
