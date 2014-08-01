@@ -1,19 +1,26 @@
 <html>
   <head>
     <title>Tic Hac Toe</title>
-    <!-- <link href='http://fonts.googleapis.com/css?family=Walter+Turncoat' rel='stylesheet' type='text/css'> -->
     <link rel="stylesheet" href="style.css" type="text/css">
     <script src="jquery.min.js"></script>
     <script src="sugar-1.2.5.min.js"></script>
     <script type="text/javascript" src="game.js"></script>
   </head>
-  <body>
+  <body class="theme-01">
     <h1>Tic Hac Toe</h1>
-    <ul id="menu">
-      <li id="status">Player X Wins!</li>
-      <li id="time"></li>
-      <li><a href="#restart" id="restart">RESTART</a></li>
-    </ul>
+
+    <div id="game-container"></div>
+
+    <script type="text/x-template" id="game-template">
+    <div id="menu-container">
+      <a href="#" title="Change Theme" id="theme" class="button">Theme: <span>1</span></a>
+
+      <ul id="menu" class="hidden">
+        <li id="time">Moves:</li>
+        <li id="status">Player X Wins!</li>
+        <li><a href="#restart" id="restart" class="button">RESTART</a></li>
+      </ul>
+    </div>
     
     <table id="game" cellpadding="0" cellspacing="0">
       <tr>
@@ -32,6 +39,7 @@
         <td></td>
       </tr>
     </table>
+    </script>
 
   </body>
 </html>

@@ -3,45 +3,99 @@
 //
 $(function() {
 
-  var _game = new Game();
-  _game.start();
-
-  $('#restart').click(function(e){
-    e.preventDefault();
-    clearInterval( _game.timerHandle );
-    _game = new Game();
-    _game.start();
-  });
-
-  // bind input actions
-  $('#game tr td').click(function(el, a, b){
-    if(_game.over) return;
-    var col = $(this).index();
-    var row = $(this).closest('tr').index();
-    _game.move( row +' '+ col );
-  });
-
-  $('#game tr td').hover(function(){
-    if(_game.over) return;
-    $(this).addClass('hover-'+ _game.activePlayer);
-  }, function(){
-    if(_game.over) return;
-    $(this).removeClass('hover-0 hover-1');
-  })
+  new Game('#game-container', '#game-template')
 
 });
 
 
-var Game = function(){
-  this.over = false;
-  this.moves = 0;
-  this.startTime = Date.now();
-  this.endTime = Date.now(); // reset this latter
-  this.Player = [];
-  this.Board = null;
-  this.activePlayer = 0; // current active player (index of this.players)
+var Game = function(element, template){
+
+  this.element = $(element);
+  this._template = template;
+
+  this.init = function(){
+    this.over = false;
+    this.moves = 0;
+    this._winPiece = [];
+    this.startTime = Date.now();
+    this.endTime = Date.now(); // reset this latter
+    this.Player = [];
+    this.Board = null;
+    this.activePlayer = 0; // current active player (index of this.players)
+    this.updateMovesCount();
+    this.maxThemes = 4;
+
+    if (!this.template){
+      this.template = $(this._template).html()
+      this.element.append(this.template)
+      this.bindEvents()
+
+      // store theme in cookie
+      var theme = readCookie('game-theme') || 1
+      theme = parseInt(theme)
+      this.setTheme( theme )
+    }
+  }
+
+  this.setTheme = function(theme){
+    this.theme = theme;
+    $('body').attr('class', 'theme-0'+ theme)
+    $('#theme span').text( theme )
+    createCookie('game-theme', theme, 365)
+  }
+
+  this.bindEvents = function(){
+    var self = this;
+
+    $('#theme').click(function(e){
+      e.preventDefault()
+      if (!self.theme) self.theme = 1;
+      self.theme++;
+      if (self.theme > self.maxThemes) self.theme = 1
+      self.setTheme( self.theme )
+    })
+
+    $('#restart', this.element).click(function(e){
+      e.preventDefault();
+      if (self.moves < 1) return;
+      self.hideMenu()
+      $('td.X, td.O', this.element).addClass('animated zoomOut')
+      setTimeout(function(){
+        self.restart();
+      }, 750);
+    });
+
+    // bind input actions
+    $('#game tr td', this.element).click(function(el, a, b){
+      if(self.over) return;
+      var col = $(this).index();
+      var row = $(this).closest('tr').index();
+      self.move( row +' '+ col );
+      self.showMenu()
+    });
+
+    $('#game tr td', this.element).hover(function(){
+      if(self.over) return;
+      $(this).addClass('hover-'+ self.activePlayer);
+    }, function(){
+      if(self.over) return;
+      $(this).removeClass('hover-0 hover-1');
+    })
+
+    // reset the td.X|O elements when css animations are done
+    $(this.element).on('webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend', 'td.X', function(){
+      $(this).attr('class', 'X')
+    });
+
+    $(this.element).on('webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend', 'td.O', function(){
+      $(this).attr('class', 'O')
+    });
+
+  }
 
   this.start = function(){
+    this.hideMenu();
+    this.init();
     // console.log('Starting Game');
     $('#game tr td').attr('class', '');
     $('#status').removeClass('show');
@@ -55,6 +109,19 @@ var Game = function(){
 
     // this.timer();
   };
+
+  this.showMenu = function(){
+    $('#menu').attr('class', '')
+  }
+
+  this.hideMenu = function(){
+    $('#menu').attr('class', 'hidden')
+  }
+
+  this.restart = function(){
+    clearInterval( this.timerHandle );
+    this.start();
+  }
 
 
   this.timer = function(){
@@ -121,18 +188,44 @@ var Game = function(){
 
     this.updateMovesCount();
 
+    // a player has won!
     if(this.hasWon(Player)){
-      $('#status').text('Player '+ Player.symbol +' Wins!').addClass('show');
-      this.over = true;
+      this.gameOver(Player);
+      return true;
     }
 
-    if(this.moves >= 9){
-      // cats game
-      $('#status').text('It\'s a Draw!').addClass('show');
-    }
+    // draw!
+    if(this.moves >= 9) this.gameOver(null)
 
     return true;
   };
+
+  this.gameOver = function(Player){
+    if (!Player){
+      $('td.X, td.O', this.element).addClass('animated swing')
+      return $('#status').text('It\'s a Draw!').addClass('show');
+    }
+
+    // only animate the winning pieces!
+    var elements = '';
+    for(var i=0; i<this._winPiece.length; i++){
+      var p = this._winPiece[i]
+      if (p < 3){
+        elements += 'tr:eq(0) td:eq('+ p +'),';
+      } else if( p < 6){
+        elements += 'tr:eq(1) td:eq('+ (p-3) +'),';
+      } else {
+        elements += 'tr:eq(2) td:eq('+ (p-6) +'),';
+      }
+    }
+    elements.slice(0, - 1); // trim last character
+
+    var x = $( elements ).addClass('animated rubberBand')
+
+    $('#status').text('Player '+ Player.symbol +' Wins!').addClass('show');
+    this.over = true;
+
+  }
 
   /**
    * Check if the player has won
@@ -142,9 +235,12 @@ var Game = function(){
   this.hasWon = function(Player){
     var won = false;
     var wins = Player.moves.join(' ');
+    var self = this;
+
     this.Board.wins.each(function(n){
       if(wins.has(n[0]) && wins.has(n[1]) && wins.has(n[2])){
         won = true;
+        self._winPiece = n;
         return true;
       }
     });
@@ -154,6 +250,12 @@ var Game = function(){
   this.updateMovesCount = function(){
     $('#time').text('Moves: '+ this.moves );
   }
+
+
+  //
+  // Start the game
+  //
+  this.start()
 
 };
 
@@ -201,5 +303,34 @@ var Board = function(){
       });
     });
   };
+
 };
+
+/**
+ * Read/Write cookies (http://www.quirksmode.org/js/cookies.html)
+ */
+function createCookie(name, value, days) {
+  if (days) {
+    var date = new Date();
+    date.setTime(date.getTime()+(days*24*60*60*1000));
+    var expires = "; expires="+date.toGMTString();
+  }
+  else var expires = "";
+  document.cookie = name+"="+value+expires+"; path=/";
+}
+
+function readCookie(name) {
+  var nameEQ = name + "=";
+  var ca = document.cookie.split(';');
+  for(var i=0;i < ca.length;i++) {
+    var c = ca[i];
+    while (c.charAt(0)==' ') c = c.substring(1,c.length);
+    if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+  }
+  return null;
+}
+
+function eraseCookie(name) {
+  createCookie(name,"",-1);
+}
 
