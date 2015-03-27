@@ -114,6 +114,10 @@ h1 {
   text-decoration:none;
 }
 
+#restart {
+  display:inline-block;
+}
+
 .button {
   /*border-radius:4px;*/
   padding:7px;
